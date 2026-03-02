@@ -1,0 +1,34 @@
+# AWS EKS - PersistentVolumeClaim using EBS gp3 storage class
+# Note: EKS dynamically provisions PV, so we only need PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: todo-app-pvc
+  namespace: todo-app
+  labels:
+    app: todo-app
+spec:
+  # gp3 is the recommended EBS storage class for EKS
+  # gp2 is also available as default
+  storageClassName: gp3
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# StorageClass for gp3 (create only if not already exists in cluster)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+  encrypted: "true"
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
