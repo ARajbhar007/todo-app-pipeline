@@ -11,3 +11,5 @@ dist/
 .idea/
 *.swp
 *.swo
+trivyfs.txt
+trivyimage.txt
