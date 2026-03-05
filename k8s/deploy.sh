@@ -4,7 +4,7 @@
 set -e
 
 # Configuration - Update these values
-AWS_REGION="${AWS_REGION:-us-east-1}"
+AWS_REGION="${AWS_REGION:-ap-south-1}"
 EKS_CLUSTER_NAME="${EKS_CLUSTER_NAME:-my-eks-cluster}"
 NAMESPACE="todo-app"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
