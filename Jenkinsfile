@@ -34,9 +34,7 @@ pipeline {
                         $SCANNER_HOME/bin/sonar-scanner \
                         -Dsonar.projectKey=todo-app \
                         -Dsonar.projectName=todo-app \
-                        -Dsonar.sources=src \
-                        -Dsonar.host.url=http://YOUR_SONAR_IP:9000 \
-                        -Dsonar.login=YOUR_SONAR_TOKEN
+                        -Dsonar.sources=src
                     '''
                 }
             }
@@ -50,7 +48,21 @@ pipeline {
         }
         stage('Trivy File Scan') {
             steps {
-                sh 'trivy fs . > trivyfs.txt'
+                sh 'trivy fs --exit-code 1 --severity HIGH,CRITICAL . | tee trivyfs.txt'
+            }
+        }
+        stage('Validate Build Files') {
+            steps {
+                script {
+                    sh '''
+                        echo "Validating required files for Docker build..."
+                        if [ ! -d "public" ]; then
+                            echo "ERROR: public/ directory not found!"
+                            exit 1
+                        fi
+                        echo "✅ All required files present"
+                    '''
+                }
             }
         }
         stage('Docker Image Build') {
@@ -58,7 +70,7 @@ pipeline {
                 script {
                     sh 'docker system prune -f'
                     sh 'docker container prune -f'
-                    sh 'docker build -t ${AWS_ECR_REPO_NAME} .'
+                    sh 'docker build -t ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:latest .'
                 }
             }
         }
@@ -66,19 +78,14 @@ pipeline {
             steps {
                 script {
                     sh 'aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REPOSITORY_URI}'
-                    sh 'docker tag ${AWS_ECR_REPO_NAME} ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}'
+                    sh 'docker tag ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:latest ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}'
                     sh 'docker push ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}'
                 }
             }
         }
         stage('Trivy Image Scan') {
             steps {
-                sh 'trivy image ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} > trivyimage.txt'
-            }
-        }
-        stage('Checkout Code') {
-            steps {
-                git branch: 'main', credentialsId: 'GITHUB', url: 'https://github.com/ARajbhar007/todo-app-pipeline.git'
+                sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} | tee trivyimage.txt'
             }
         }
         stage('Update Deployment File') {
@@ -93,15 +100,11 @@ pipeline {
                             sh 'git config user.email "arajbhar140@gmail.com"'
                             sh 'git config user.name "${GIT_USER_NAME}"'
 
-                            // Extract current tag safely
-                            def currentTag = sh(
-                                script: "grep -oP '(?<=todo-app:)[^\"\' ]+' deployment.yaml | head -1 || echo latest",
-                                returnStdout: true
-                            ).trim()
-                            echo "Current tag: ${currentTag}"
+                            // Pull latest changes to avoid merge conflicts
+                            sh "git pull https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} main"
 
-                            // Replace image tag with BUILD_NUMBER
-                            sh "sed -i 's|todo-app:${currentTag}|todo-app:${BUILD_NUMBER}|g' deployment.yaml"
+                            // Replace the full image reference with current build
+                            sh """sed -i 's|image: .*todo-app:.*|image: ${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}|g' deployment.yaml"""
 
                             // Commit safely
                             sh "git add deployment.yaml"
@@ -114,6 +117,21 @@ pipeline {
                             sh "git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main"
                         }
                     }
+                }
+            }
+        }
+        stage('Verify Deployment Update') {
+            steps {
+                script {
+                    sh """
+                        echo "Validating deployment.yaml was updated correctly..."
+                        if grep -q "${AWS_ECR_REPO_NAME}:${BUILD_NUMBER}" k8s/deployment.yaml; then
+                            echo "✅ Deployment file updated with build ${BUILD_NUMBER}"
+                        else
+                            echo "❌ Deployment file update validation failed!"
+                            exit 1
+                        fi
+                    """
                 }
             }
         }
