@@ -32,8 +32,8 @@ pipeline {
                 withSonarQubeEnv('sonar-server') {
                     sh '''
                         $SCANNER_HOME/bin/sonar-scanner \
-                        -Dsonar.projectKey=todo \
-                        -Dsonar.projectName=todo \
+                        -Dsonar.projectKey=app \
+                        -Dsonar.projectName=app \
                         -Dsonar.sources=. \
                         -Dsonar.host.url=http://13.127.106.232:9000 \
                         -Dsonar.login=sqp_cda8cbd28ea40d94cec19ad185e4cd6a02ac22c9
