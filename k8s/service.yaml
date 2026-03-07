@@ -20,25 +20,24 @@ spec:
       targetPort: 3000
       nodePort: 30080
 ---
-# Optional: LoadBalancer Service for direct external access
-# Uncomment if you prefer LoadBalancer over NodePort + Ingress
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: todo-app-lb
-#   namespace: todo-app
-#   labels:
-#     app: todo-app
-#   annotations:
-#     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-#     service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
-#     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
-# spec:
-#   type: LoadBalancer
-#   selector:
-#     app: todo-app
-#   ports:
-#     - name: http
-#       protocol: TCP
-#       port: 80
-#       targetPort: 3000
+# LoadBalancer Service for direct external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-app-lb
+  namespace: todo-app
+  labels:
+    app: todo-app
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: LoadBalancer
+  selector:
+    app: todo-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000
