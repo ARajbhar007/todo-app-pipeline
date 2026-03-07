@@ -13,7 +13,6 @@ spec:
   storageClassName: gp3
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-storage
   resources:
     requests:
       storage: 5Gi

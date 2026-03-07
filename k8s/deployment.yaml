@@ -75,7 +75,8 @@ spec:
             allowPrivilegeEscalation: false
       volumes:
         - name: todo-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: todo-app-pvc
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       # EKS node affinity - spread pods across nodes
