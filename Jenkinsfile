@@ -35,8 +35,8 @@ pipeline {
                         -Dsonar.projectKey=todo-app \
                         -Dsonar.projectName=todo-app \
                         -Dsonar.sources=src \
-                        -Dsonar.host.url=http://YOUR_SONAR_IP:9000 \
-                        -Dsonar.login=YOUR_SONAR_TOKEN
+                        -Dsonar.host.url=http://13.127.106.232:9000 \
+                        -Dsonar.login=sqp_ca8ef3d906b22a85cb8952e5f2941bb1fde02815
                     '''
                 }
             }
