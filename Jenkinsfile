@@ -88,7 +88,7 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                     script {
-                        sh 'git config user.email "arajbhar140@gmail.com"'
+                        sh "git config user.email 'arajbhar140@gmail.com'"
                         sh "git config user.name '${GIT_USER_NAME}'"
 
                         // Replace image tag in deployment.yaml with the current BUILD_NUMBER.
