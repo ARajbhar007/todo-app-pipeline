@@ -4,9 +4,6 @@ pipeline {
         jdk 'jdk'
         nodejs 'nodejs'
     }
-    parameters {
-        booleanParam(name: 'DEPLOY_TO_K8S', defaultValue: false, description: 'Apply Kubernetes manifests after image push')
-    }
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
         AWS_ACCOUNT_ID = credentials('ACCOUNT_ID')
@@ -39,7 +36,8 @@ pipeline {
                             -Dsonar.projectKey=app \
                             -Dsonar.projectName=app \
                             -Dsonar.sources=. \
-                            -Dsonar.login=$SONAR_TOKEN
+                            -Dsonar.host.url=http://13.127.106.232:9000 \
+                            -Dsonar.login=sqp_cda8cbd28ea40d94cec19ad185e4cd6a02ac22c9
                         '''
                     }
                 }
@@ -86,38 +84,28 @@ pipeline {
                 GIT_USER_NAME = "ARajbhar007"
             }
             steps {
-                withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                    script {
-                        sh "git config user.email 'arajbhar140@gmail.com'"
-                        sh "git config user.name '${GIT_USER_NAME}'"
+                dir('k8s') {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                        script {
+                            sh '''
+                                git config user.email "arajbhar140@gmail.com"
+                                git config user.name "ARajbhar007"
+                            '''
 
-                        // Replace image tag in deployment.yaml with the current BUILD_NUMBER.
-                        // Uses -E (ERE) so that + means "one or more" non-whitespace characters.
-                        sh "sed -i -E 's|todo-app:[^[:space:]]+|todo-app:${BUILD_NUMBER}|g' k8s/deployment.yaml"
+                            // Replace image tag with BUILD_NUMBER
+                            sh '''
+                                sed -i 's|todo-app:[^ ]*|todo-app:''' + BUILD_NUMBER + '''|g' deployment.yaml
+                            '''
 
-                        sh 'git add k8s/deployment.yaml'
-                        def commitStatus = sh(
-                            script: "git commit -m 'Update deployment image to version ${BUILD_NUMBER}'",
-                            returnStatus: true
-                        )
-                        if (commitStatus != 0) {
-                            echo "No changes to commit"
+                            // Commit and push changes
+                            sh '''
+                                git add deployment.yaml
+                                git commit -m "Update deployment Image to version ''' + BUILD_NUMBER + '''" || echo "No changes to commit"
+                                git remote set-url origin https://ARajbhar007:${GITHUB_TOKEN}@github.com/ARajbhar007/todo-app-pipeline.git
+                                git push origin HEAD:main
+                            '''
                         }
-
-                        sh "git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main"
                     }
-                }
-            }
-        }
-        stage('Deploy to Kubernetes') {
-            when {
-                expression { return params.DEPLOY_TO_K8S == true }
-            }
-            steps {
-                script {
-                    sh 'kubectl apply -f k8s/'
-                    sh "kubectl set image deployment/todo-app todo-app=${REPOSITORY_URI}${AWS_ECR_REPO_NAME}:${BUILD_NUMBER} -n todo-app"
-                    sh 'kubectl rollout status deployment/todo-app -n todo-app --timeout=120s'
                 }
             }
         }
