@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/version: "1.0.0"
     app.kubernetes.io/managed-by: jenkins
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: todo-app
