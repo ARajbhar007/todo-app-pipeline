@@ -33,7 +33,7 @@ spec:
       containers:
         - name: todo-app
           # Image will be updated by Jenkins pipeline with BUILD_NUMBER
-          image: 175200622339.dkr.ecr.ap-south-1.amazonaws.com/todo-app:20
+          image: 175200622339.dkr.ecr.ap-south-1.amazonaws.com/todo-app:2
           imagePullPolicy: Always
           ports:
             - name: http
